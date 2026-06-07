@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
+import { searchRestaurants } from "@/lib/googlePlaces";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -127,15 +128,18 @@ OUTPUT JSON SHAPE:
       "searchQuery": ""
     }
   ],
-  "restaurants": [
-    {
-      "name": "",
-      "description": "",
-      "glutenFreeConfidence": "confirmed | mentioned | uncertain | not_required",
-      "distance": "",
-      "searchQuery": ""
-    }
-  ],
+"restaurants": [
+  {
+    "name": "",
+    "description": "",
+    "glutenFreeConfidence": "confirmed | mentioned | uncertain | not_required",
+    "distance": "",
+    "address": "",
+    "rating": "",
+    "googleMapsUri": "",
+    "searchQuery": ""
+  }
+],
   "parking": {
     "name": "",
     "description": "",
@@ -166,13 +170,23 @@ OUTPUT JSON SHAPE:
 IMPORTANT:
 - accommodationOptions must be [] for day trip.
 - accommodationOptions must contain exactly 3 items for weekend or vacation.
-- restaurants must contain at least 2 items if possible.
+- restaurants must contain exactly 4 items if possible.
 - itinerary must be grouped by days using the new itinerary structure.
 `;
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    const realRestaurants = await searchRestaurants(
+  body.destination || "Czech Republic"
+);
+
+const restaurantsForPrompt = realRestaurants
+  .map(
+    (place, index) =>
+      `${index + 1}. ${place.name}, ${place.address}, rating: ${place.rating}, maps: ${place.googleMapsUri}`
+  )
+  .join("\n");
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
@@ -193,6 +207,13 @@ Budget: ${body.budget || "not specified"}
 Travelers: ${body.travelers?.join(", ") || "not specified"}
 Gluten-free required: ${body.glutenFreeRequired ? "true" : "false"}
 Accommodation preference: ${body.accommodationPreference || "not specified"}
+
+Available real restaurants from Google Places:
+${restaurantsForPrompt || "No real restaurants found."}
+
+Use ONLY these restaurants in the restaurants section.
+Do not invent restaurant names.
+For each restaurant, copy name, address, rating and googleMapsUri from the available real restaurants list.
 
 Create a realistic structured trip recommendation based on these inputs.
 `,

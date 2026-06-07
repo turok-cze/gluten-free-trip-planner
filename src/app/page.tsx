@@ -29,13 +29,16 @@ type TripResult = {
     estimatedPrice?: string;
     searchQuery?: string;
   }[];
-  restaurants?: {
-    name?: string;
-    description?: string;
-    glutenFreeConfidence?: string;
-    distance?: string;
-    searchQuery?: string;
-  }[];
+restaurants?: {
+  name?: string;
+  description?: string;
+  glutenFreeConfidence?: string;
+  distance?: string;
+  address?: string;
+  rating?: string;
+  googleMapsUri?: string;
+  searchQuery?: string;
+}[];
   parking?: {
     name?: string;
     description?: string;
@@ -839,6 +842,19 @@ function formatFoodConfidence(value?: string) {
                         {t.foodLabel}: {formatFoodConfidence(restaurant.glutenFreeConfidence)}
                         {restaurant.distance ? ` · ${restaurant.distance}` : ""}
                       </div>
+                      <div className="mt-3 grid gap-2 text-sm text-slate-600">
+  {restaurant.rating && (
+    <div className="rounded-2xl bg-slate-50 p-3">
+      ⭐ {restaurant.rating}
+    </div>
+  )}
+
+  {restaurant.address && (
+    <div className="rounded-2xl bg-slate-50 p-3">
+      📍 {restaurant.address}
+    </div>
+  )}
+</div>
                       <div className="mt-4 flex flex-wrap gap-2">
                         <a
                           href={createSearchLink(restaurant.searchQuery)}
@@ -848,7 +864,7 @@ function formatFoodConfidence(value?: string) {
                           {t.detail}
                         </a>
                         <a
-                          href={createMapLink(restaurant.searchQuery)}
+                          href={restaurant.googleMapsUri || createMapLink(restaurant.searchQuery)}
                           target="_blank"
                           className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700"
                         >
